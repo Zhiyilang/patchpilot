@@ -1,0 +1,18 @@
+# PatchPilot 示例输入
+# 1) 离线审查自带烂代码（无需 Key）
+python -m patchpilot.cli examples/bad_code.py
+
+# 2) 生成 HTML 报告
+python -m patchpilot.cli examples/bad_code.py --html report.html
+
+# 3) 启用 Nemotron 深度审查（需 NEBIUS_API_KEY）
+python -m patchpilot.cli examples/bad_code.py
+
+# 4) 启用 Tavily 检索增强（需 TAVILY_API_KEY）
+python -m patchpilot.cli examples/bad_code.py --search
+
+# 5) 仅离线 Linter
+python -m patchpilot.cli examples/bad_code.py --no-llm
+
+# 6) 启动 Web 控制台
+python server.py   # → http://localhost:8000
