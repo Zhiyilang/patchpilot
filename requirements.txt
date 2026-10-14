@@ -1,0 +1,3 @@
+# PatchPilot 零第三方依赖 —— 仅用 Python 标准库（urllib / http.server / re / dataclasses）。
+# Nebius Token Factory 与 Tavily 均通过其 REST API（urllib）调用，无需 SDK。
+# 保留此空文件以便 Render / CI 的 `pip install -r requirements.txt` 步骤通过。
