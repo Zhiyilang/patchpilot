@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .research import tier_label
+
 _SEV = {"HIGH": "🔴", "CAUTION": "🟡", "INFO": "🔵"}
 
 
@@ -35,10 +37,17 @@ def text_receipt(result: dict) -> str:
                 out.append(f"      - {p['before'].strip()}")
             out.append(f"      + {p['after'].strip()}")
     if result.get("references"):
+        ev = result.get("evidence") or {}
         out.append("")
-        out.append("最佳实践参考：")
+        out.append(f"Tavily 证据（{ev.get('mode', '-')}）：")
         for r in result["references"]:
-            out.append(f"  - [{r['for']}] {r['title']} — {r['url']}")
+            mark = "✅" if r.get("quote_verified") else ("⚠️" if "quote_matched" in r else "·")
+            out.append(f"  {mark} [{r['for']}] {r['title']}")
+            out.append(f"      {r['url']}  (可信度 {tier_label(r.get('tier', 0))}, score {r.get('score', '-')})")
+        gate = ev.get("gate") or {}
+        if gate:
+            out.append(f"  🧭 闸门：候选 {gate.get('considered', 0)} → 采纳 {gate.get('admitted', 0)}"
+                       f" · 端点 {ev.get('calls', {})} · credits {ev.get('credits', 0)}")
     out.append("")
     out.append(result["explain"])
     out.append("=" * 48)
@@ -73,8 +82,27 @@ def html_receipt(result: dict) -> str:
 
     refs_html = ""
     for r in result.get("references", []):
-        refs_html += f"<li>[{r['for']}] <a href='{r['url']}' target='_blank'>{r['title']}</a></li>"
-    ref_block = f"<h3>🔎 最佳实践参考（Tavily）</h3><ul>{refs_html}</ul>" if refs_html else ""
+        if r.get("quote_verified"):
+            v = "<span class='ok'>✅ 已回正文核对</span>"
+        elif "quote_matched" in r:
+            v = f"<span class='warn'>⚠️ 核对未通过（{r.get('quote_matched')}/{len(r.get('quote_probes', []) or [0])}）</span>"
+        else:
+            v = ""
+        fix = " <span class='src'>fixture</span>" if r.get("fixture") else ""
+        refs_html += (f"<li>[{r['for']}] <a href='{r['url']}' target='_blank'>{r['title']}</a> "
+                      f"<span class='src'>{r.get('domain', '')} · 可信度 {tier_label(r.get('tier', 0))} · "
+                      f"score {r.get('score', '-')}</span> {v}{fix}</li>")
+    ev = result.get("evidence") or {}
+    gate = ev.get("gate") or {}
+    stats = ""
+    if gate:
+        stats = (f"<div class='gate'>🧭 证据闸门：候选 {gate.get('considered', 0)} → 采纳 "
+                 f"{gate.get('admitted', 0)} · 端点 {ev.get('calls', {})} · "
+                 f"credits {ev.get('credits', 0)} · {ev.get('elapsed_s', 0)}s</div>")
+    if ev.get("degraded") and ev.get("reason"):
+        stats += f"<div class='warnline'>⚠️ {ev['reason']}</div>"
+    ref_block = f"<h3>🔎 Tavily 证据（{ev.get('mode', '-')}）</h3>{stats}<ul>{refs_html}</ul>" \
+        if (refs_html or gate) else ""
 
     return f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -97,6 +125,9 @@ def html_receipt(result: dict) -> str:
  .diff{{white-space:pre-wrap}} .del{{color:#ff7b72}} .add{{color:#7ee787}}
  ul{{line-height:1.7}} a{{color:#6ea8fe}}
  .explain{{white-space:pre-wrap;background:#0f2a4a;border:1px solid #2b4a7a;padding:.8rem 1rem;border-radius:8px;margin-top:1rem}}
+ .gate{{font-size:.8rem;color:#9aa0c3;background:#141833;padding:.4rem .7rem;border-radius:6px;margin:.4rem 0}}
+ .warnline{{font-size:.82rem;color:#f0b429;background:#3a2c0d;padding:.4rem .7rem;border-radius:6px;margin:.4rem 0}}
+ .ok{{color:#7ee787;font-size:.78rem}} .warn{{color:#f0b429;font-size:.78rem}}
 </style></head><body>
 <div class='card'>
 <h1>🩹 PatchPilot 代码审查报告</h1>
