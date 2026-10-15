@@ -17,6 +17,7 @@ import json
 import sys
 
 from .agent import PatchPilot
+from . import i18n
 from .receipts import html_receipt, text_receipt
 from .research import ResearchLayer, TavilyClient, TavilyError
 
@@ -61,6 +62,8 @@ def main(argv=None) -> int:
     ap.add_argument("--map-site", metavar="URL", help="直接调用 Tavily /map")
     ap.add_argument("--research", metavar="QUERY", help="直接调用 Tavily /research")
     ap.add_argument("--usage", action="store_true", help="直接调用 Tavily /usage")
+    ap.add_argument("--lang", choices=("zh", "en"), default="zh",
+                    help="回执语言（默认 zh；en = English receipt）")
     args = ap.parse_args(argv)
 
     if args.map_site or args.research or args.usage:
@@ -75,17 +78,19 @@ def main(argv=None) -> int:
     dp = PatchPilot(offline_evidence=args.offline_evidence)
     result = dp.review(code, use_llm=not args.no_llm,
                        use_search=args.search or args.offline_evidence)
-    print(text_receipt(result))
+    print(text_receipt(result, lang=args.lang))
 
     if args.evidence_json:
         with open(args.evidence_json, "w", encoding="utf-8") as f:
             json.dump(result.get("evidence", {}), f, ensure_ascii=False, indent=2)
-        print(f"\n证据包已写入：{args.evidence_json}")
+        print(f"\n证据包已写入：{args.evidence_json}" if args.lang == "zh"
+              else i18n.t("en", "evidence_written", path=args.evidence_json))
 
     if args.html:
         with open(args.html, "w", encoding="utf-8") as f:
             f.write(html_receipt(result))
-        print(f"\nHTML 报告已写入：{args.html}")
+        print(f"\nHTML 报告已写入：{args.html}" if args.lang == "zh"
+              else i18n.t("en", "html_written", path=args.html))
     return 0 if result.get("ok") else 1
 
 
