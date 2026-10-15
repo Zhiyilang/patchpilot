@@ -4,7 +4,7 @@
   PERCEIVE  识别语言、统计行数
   LINT      离线 Linter（确定性兜底大脑）→ findings + 机械补丁
   REASON    Nemotron 深度审查（有 Key 时）→ 语义 findings + 补丁；失败自动回落离线
-  RETRIEVE  可选 Tavily 检索：为高危问题补充"当前最佳实践"参考
+  RETRIEVE  可选 Tavily 证据检索层：为问题取证（域名分级 + 关键词 + 正文核对）
   PLAN      合并双大脑发现（去重）+ 汇总补丁
   EXPLAIN   大白话结论
   RECEIPT   结构化回执（含证据）
@@ -19,6 +19,7 @@ from typing import Optional
 from .lint import OfflineLinter
 from .llm import get_reviewer, get_search
 from .models import Finding, Patch, Review
+from .research import ResearchLayer
 
 
 def _dedupe(findings: list) -> list:
@@ -42,10 +43,13 @@ def _dedupe(findings: list) -> list:
 
 
 class PatchPilot:
-    def __init__(self, reviewer=None, search=None) -> None:
+    def __init__(self, reviewer=None, search=None, research=None,
+                 offline_evidence: bool = False) -> None:
         self.linter = OfflineLinter()
         self.reviewer = reviewer if reviewer is not None else get_reviewer()
         self.search = search if search is not None else get_search()
+        self.research = research if research is not None else \
+            ResearchLayer.from_env(offline=offline_evidence)
 
     @property
     def brain(self) -> str:
@@ -84,20 +88,20 @@ class PatchPilot:
             except Exception:
                 nemotron_used = False  # 优雅回落，不崩溃
 
-        # RETRIEVE（可选 Tavily）
-        references = []
-        if use_search and self.search is not None:
-            try:
-                highs = [f for f in findings if f.severity == "HIGH"][:2]
-                for f in highs:
-                    refs = self.search.search(f"{f.rule} {f.message[:60]} best practice")
-                    for r in refs:
-                        references.append({"for": f.code, **r})
-            except Exception:
-                pass
-
         # PLAN（合并去重）
         merged = _dedupe(findings)
+
+        # RETRIEVE（可选 Tavily 证据检索层；放在去重之后，同一处问题只取证一次）
+        references: list = []
+        evidence_bundle: dict = {}
+        if use_search:
+            try:
+                evidence_bundle = self.research.enrich(merged)
+                references = list(evidence_bundle.get("evidence", []))
+            except Exception as exc:  # 检索永远不能拖垮审查
+                evidence_bundle = {"mode": "error", "evidence": [], "gate": {},
+                                   "calls": {}, "credits": 0.0, "degraded": True,
+                                   "reason": f"{type(exc).__name__}: {exc}"}
 
         # 评分
         highs = sum(1 for f in merged if f.severity == "HIGH")
@@ -112,7 +116,7 @@ class PatchPilot:
             summary = (f"审查 {len(lines)} 行 {language} 代码，发现 {highs} 个高危、"
                        f"{cautions} 个待留意、{infos} 个提示，风险等级 {band}。")
 
-        explain = self._explain(merged, patches, nemotron_used, references)
+        explain = self._explain(merged, patches, nemotron_used, references, evidence_bundle)
 
         return {
             "ok": True, "language": language, "lines": len(lines),
@@ -121,6 +125,7 @@ class PatchPilot:
             "findings": [self._f_dict(f) for f in merged],
             "patches": [self._p_dict(p) for p in patches],
             "references": references,
+            "evidence": evidence_bundle,
             "explain": explain,
         }
 
@@ -136,7 +141,7 @@ class PatchPilot:
                 "rationale": p.rationale, "source": p.source}
 
     @staticmethod
-    def _explain(findings, patches, nemotron_used, references) -> str:
+    def _explain(findings, patches, nemotron_used, references, evidence=None) -> str:
         lines = []
         highs = [f for f in findings if f.severity == "HIGH"]
         if highs:
@@ -153,5 +158,11 @@ class PatchPilot:
         else:
             lines.append("ℹ️ 当前为离线 Linter 模式；配置 NEBIUS_API_KEY 即可启用 Nemotron 深度审查。")
         if references:
-            lines.append(f"🔎 已附 {len(references)} 条最佳实践参考（Tavily）。")
+            bundle = evidence or {}
+            mode = bundle.get("mode", "tavily")
+            verified = sum(1 for r in references if r.get("quote_verified"))
+            lines.append(f"🔎 Tavily 取证 {len(references)} 条（{mode}，"
+                         f"{verified} 条已回正文核对）。")
+            if bundle.get("degraded") and bundle.get("reason"):
+                lines.append(f"   ⚠️ {bundle['reason']}")
         return "\n".join(lines)
