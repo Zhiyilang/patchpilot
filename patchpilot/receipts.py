@@ -2,56 +2,140 @@
 
 from __future__ import annotations
 
+from . import i18n
 from .research import tier_label
 
 _SEV = {"HIGH": "🔴", "CAUTION": "🟡", "INFO": "🔵"}
 
 
-def text_receipt(result: dict) -> str:
+def text_receipt(result: dict, lang: str = "zh") -> str:
     if not result.get("ok"):
-        return f"PatchPilot\n{'=' * 40}\n{result.get('error', '无法处理')}\n"
+        msg = result.get("error", "无法处理")
+        if lang == "en":
+            msg = i18n.t(lang, "unprocessable") + ": " + msg
+        return f"PatchPilot\n{'=' * 40}\n{msg}\n"
+    en = lang == "en"
+    if en:
+        title = i18n.t(lang, "title")
+        brain_line = i18n.t(lang, "brain_line", brain=result["brain"],
+                            language=result["language"], lines=result["lines"])
+        score_line = i18n.t(lang, "score_line", score=result["score"],
+                            band=result["band"])
+        findings = result["findings"]
+        highs = sum(1 for f in findings if f["severity"] == "HIGH")
+        cautions = sum(1 for f in findings if f["severity"] == "CAUTION")
+        infos = sum(1 for f in findings if f["severity"] == "INFO")
+        summary = (i18n.t(lang, "summary_clean", lines=result["lines"],
+                          language=result["language"]) if not findings else
+                   i18n.t(lang, "summary_findings", lines=result["lines"],
+                          language=result["language"], highs=highs,
+                          cautions=cautions, infos=infos, band=result["band"]))
+    else:
+        title = "PatchPilot · 代码审查回执"
+        brain_line = (f"大脑：{result['brain']}    语言：{result['language']}"
+                      f"    行数：{result['lines']}")
+        score_line = f"风险评分：{result['score']}/100    等级：{result['band']}"
+        summary = result["summary"]
     out = [
-        "PatchPilot · 代码审查回执",
+        title,
         "=" * 48,
-        f"大脑：{result['brain']}    语言：{result['language']}    行数：{result['lines']}",
-        f"风险评分：{result['score']}/100    等级：{result['band']}",
+        brain_line,
+        score_line,
         "-" * 48,
-        result["summary"],
+        summary,
     ]
     if result["findings"]:
         out.append("")
         for f in result["findings"]:
             emoji = _SEV.get(f["severity"], "•")
             loc = f"L{f['line']}" if f["line"] else "?"
-            out.append(f"{emoji} [{f['severity']}] {f['rule']}（{f['code']}）{loc} · {f['source']}")
-            out.append(f"    {f['message']}")
-            out.append(f"    👉 {f['suggestion']}")
+            rule, message, suggestion = f["rule"], f["message"], f["suggestion"]
+            if en:
+                tr = i18n.rule_en(f["code"])
+                if tr:
+                    rule, message, suggestion = tr
+            out.append(f"{emoji} [{f['severity']}] {rule}（{f['code']}）{loc} · {f['source']}"
+                       if not en else
+                       f"{emoji} [{f['severity']}] {rule} ({f['code']}) {loc} · {f['source']}")
+            out.append(f"    {message}")
+            out.append(f"    👉 {suggestion}")
             if f.get("evidence"):
                 out.append(f"    📎 {f['evidence']}")
     if result["patches"]:
         out.append("")
-        out.append("补丁建议：")
+        out.append(i18n.t(lang, "patches_header") if en else "补丁建议：")
         for p in result["patches"]:
-            out.append(f"  L{p['line']} [{p['source']}] {p['rationale']}")
+            rationale = p["rationale"]
+            if en:
+                rationale = i18n.PATCH_EN.get(rationale, rationale)
+            out.append(f"  L{p['line']} [{p['source']}] {rationale}")
             if p.get("before"):
                 out.append(f"      - {p['before'].strip()}")
             out.append(f"      + {p['after'].strip()}")
     if result.get("references"):
         ev = result.get("evidence") or {}
         out.append("")
-        out.append(f"Tavily 证据（{ev.get('mode', '-')}）：")
+        out.append(i18n.t(lang, "evidence_header", mode=ev.get("mode", "-"))
+                   if en else f"Tavily 证据（{ev.get('mode', '-')}）：")
         for r in result["references"]:
             mark = "✅" if r.get("quote_verified") else ("⚠️" if "quote_matched" in r else "·")
             out.append(f"  {mark} [{r['for']}] {r['title']}")
-            out.append(f"      {r['url']}  (可信度 {tier_label(r.get('tier', 0))}, score {r.get('score', '-')})")
+            if en:
+                tier = i18n.UI_EN["tier"].get(r.get("tier", 0), str(r.get("tier", 0)))
+            else:
+                tier = tier_label(r.get("tier", 0))
+            out.append(f"      {r['url']}  (credibility {tier}, score {r.get('score', '-')})")
         gate = ev.get("gate") or {}
         if gate:
-            out.append(f"  🧭 闸门：候选 {gate.get('considered', 0)} → 采纳 {gate.get('admitted', 0)}"
-                       f" · 端点 {ev.get('calls', {})} · credits {ev.get('credits', 0)}")
+            out.append(f"  🧭 " + (i18n.t(lang, "gate_line",
+                                         considered=gate.get("considered", 0),
+                                         admitted=gate.get("admitted", 0),
+                                         calls=ev.get("calls", {}),
+                                         credits=ev.get("credits", 0))
+                                   if en else
+                                   f"闸门：候选 {gate.get('considered', 0)} → 采纳 {gate.get('admitted', 0)}"
+                                   f" · 端点 {ev.get('calls', {})} · credits {ev.get('credits', 0)}"))
     out.append("")
-    out.append(result["explain"])
+    out.append(_explain_text(result, en))
     out.append("=" * 48)
     return "\n".join(out)
+
+
+def _explain_text(result: dict, en: bool) -> str:
+    """Rebuild the explanation in the requested language from result fields."""
+    findings = result["findings"]
+    patches = result["patches"]
+    references = result.get("references")
+    ev = result.get("evidence") or {}
+    nemotron_used = result.get("brain") == "nemotron"
+    lines = []
+    if en:
+        highs = [f for f in findings if f["severity"] == "HIGH"]
+        if highs:
+            lines.append("⚠️ Fix the high-severity findings first:")
+            for f in highs:
+                loc = f"L{f['line']}" if f["line"] else "?"
+                msg = f["message"]
+                tr = i18n.rule_en(f["code"])
+                if tr:
+                    msg = tr[1]
+                lines.append(f"  - [{f['code']}] {loc}: {msg}")
+        else:
+            lines.append("✅ No high-severity findings.")
+        if patches:
+            lines.append(i18n.UI_EN["explain_patches"].format(n=len(patches)))
+        if nemotron_used:
+            lines.append("🧠 " + i18n.UI_EN["explain_nemotron"])
+        else:
+            lines.append("ℹ️ " + i18n.UI_EN["explain_offline"])
+        if references:
+            verified = sum(1 for r in references if r.get("quote_verified"))
+            lines.append("🔎 " + i18n.UI_EN["explain_tavily"].format(
+                n=len(references), mode=ev.get("mode", "tavily"), verified=verified))
+            if ev.get("degraded") and ev.get("reason"):
+                lines.append(f"   ⚠️ {ev['reason']}")
+        return "\n".join(lines)
+    return result.get("explain", "")
 
 
 def html_receipt(result: dict) -> str:
