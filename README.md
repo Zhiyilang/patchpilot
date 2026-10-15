@@ -11,9 +11,11 @@ fully out of the box.
 - 🛡️ **Dual brain:** a deterministic offline linter (12 real rules, always available) +
   Nemotron deep review. No key → still fully functional.
 - 🔧 **Auto-fix:** emits before/after patch diffs for mechanically-fixable issues.
-- 🔎 **Explainable:** every finding carries a line number + the evidence line; optional
-  **Tavily** search enriches high-severity findings with current best-practice references.
-- 🧪 **Self-test:** `python eval.py` → **37/37 assertions pass**, zero dependencies.
+- 🔎 **Provable, not just explainable:** every finding carries a line number + the evidence
+  line; the optional **Tavily evidence layer** fetches real citations — but a retrieved page
+  is only a *candidate*. A deterministic gate decides what counts as evidence, and quotes are
+  verified against the fetched page body before they are labelled as verified.
+- 🧪 **Self-test:** `python eval.py` → **83/83 assertions pass**, zero dependencies.
 
 ---
 
@@ -24,7 +26,7 @@ PERCEIVE  detect language, count lines
 LINT      deterministic offline linter (fallback brain) → findings + mechanical patches
 REASON    NVIDIA Nemotron via Nebius Token Factory → semantic findings + patches
           (fails gracefully back to offline; never crashes the demo)
-RETRIEVE  optional Tavily search → best-practice references for high-severity findings
+RETRIEVE  optional Tavily evidence layer → real citations, gated then quote-verified
 PLAN      merge + de-duplicate both brains' findings
 EXPLAIN   plain-language conclusion
 RECEIPT   structured report (text / HTML) with evidence
@@ -70,16 +72,59 @@ export NEBIUS_MODEL=nvidia/nemotron-3-super-120b-a12b
 python -m patchpilot.cli examples/bad_code.py   # now uses Nemotron deep review
 ```
 
-Optional Tavily enrichment (Best Use of Tavily):
+With a key present, findings from both brains are merged and de-duplicated (same
+`code`+`line` → one finding, sources combined). Without a key, the offline linter alone
+produces a complete, useful review.
+
+---
+
+## The Tavily evidence layer
+
+> **Tavily proposes. The gate decides what counts as evidence.**
+
+Most "search-enhanced" tools paste whatever the search API returns straight into the report.
+That is how a code reviewer ends up citing an SEO farm. PatchPilot treats every retrieved page
+as a *candidate* and puts it through a deterministic gate before it can appear in a receipt.
 
 ```bash
 export TAVILY_API_KEY=...
 python -m patchpilot.cli examples/bad_code.py --search
+python -m patchpilot.cli examples/bad_code.py --search --evidence-json ev.json
+python -m patchpilot.cli examples/bad_code.py --offline-evidence   # no key? still demos
 ```
 
-With a key present, findings from both brains are merged and de-duplicated (same
-`code`+`line` → one finding, sources combined). Without a key, the offline linter alone
-produces a complete, useful review.
+**Five endpoints wrapped** (pure stdlib `urllib`, no SDK):
+
+| Endpoint | How PatchPilot uses it |
+|---|---|
+| `POST /search` | main retrieval — `topic=news` + `search_depth=advanced` + `include_domains` for CVE hunts, `topic=general` for official docs |
+| `POST /extract` | pulls the page body so a candidate quote can be **checked against its source** |
+| `POST /map` | site-graph discovery of authoritative doc pages (`--map-site docs.python.org`) |
+| `POST /crawl` | domain traversal for ingestion (off by default) |
+| `POST /research` | long-form research task with polling (`--research "…"`) |
+| `GET /usage` | credit accounting, surfaced in the receipt |
+
+**The gate, in order.** Every rejection is recorded with a reason and shown in the receipt —
+you can always see *why* a citation did not make it:
+
+1. **Domain blocklist** — content farms are rejected outright.
+2. **Trust tier** — authoritative (`cwe.mitre.org`, `nvd.nist.gov`, `owasp.org`,
+   `docs.python.org`, `*.readthedocs.io`) scores above community sources, which score above
+   everything else. Below the configured minimum → rejected.
+3. **URL de-duplication** after normalisation (tracking params stripped).
+4. **Keyword must-match** — a page that never mentions `cve` / `vulnerab` / `injection`
+   (or the docs keywords for a docs query) is not evidence for that finding.
+5. **Quote verification** — for the top candidates, `extract` fetches the body and checks the
+   snippet's longest keywords actually appear in it. Only then is it marked
+   `quote_verified: true`. Unverified stays visibly unverified.
+
+**Budgets, not vibes.** `max_search` and `max_extract` cap the spend; high-severity findings
+are researched first; findings with no research intent (`TODO_FIXME`) cost nothing. Real credit
+usage from `usage.credits` is printed on the receipt.
+
+**It never blocks the review.** Network errors, HTTP errors, and a missing key all degrade to
+an explicit `degraded: true` + reason, or to built-in fixtures with `--offline-evidence`. The
+review always completes.
 
 ---
 
@@ -127,7 +172,7 @@ for p in result["patches"]:
 | `NEBIUS_API_KEY` | enable NVIDIA Nemotron deep review | offline linter only (fully functional) |
 | `NEBIUS_BASE` | Nebius Token Factory base | `https://api.tokenfactory.nebius.com/v1/` |
 | `NEBIUS_MODEL` | NVIDIA model id | `nvidia/nemotron-3-super-120b-a12b` |
-| `TAVILY_API_KEY` | enable best-practice search enrichment | skipped |
+| `TAVILY_API_KEY` | enable the evidence layer (search + extract) | offline fixtures |
 | `PORT` | web server port | `8000` |
 
 ---
@@ -138,15 +183,17 @@ for p in result["patches"]:
 patchpilot/
 ├── patchpilot/
 │   ├── lint.py       # deterministic offline linter (12 rules) + mechanical patches
-│   ├── llm.py        # Nebius Token Factory + NVIDIA Nemotron reviewer + Tavily search
+│   ├── llm.py        # Nebius Token Factory + NVIDIA Nemotron reviewer
+│   ├── research.py   # Tavily evidence layer: 5 endpoints + deterministic gate
 │   ├── agent.py      # PatchPilot.review() agentic loop
 │   ├── receipts.py   # text + HTML report
 │   ├── web.py        # stdlib web console (reads PORT)
 │   └── cli.py        # command-line entry
-├── eval.py           # 37-assertion offline self-test
+├── eval.py           # 83-assertion offline self-test
 ├── server.py         # web entry point
 ├── examples/         # bad_code.py (planted issues)
 ├── render.yaml       # one-click cloud deploy
+├── NEBIUS_FEEDBACK.md
 └── DESIGN.md
 ```
 
