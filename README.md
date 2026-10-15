@@ -42,6 +42,9 @@ No `pip install` anything — pure Python 3.8+ standard library.
 # Review the bundled "bad code" sample (offline mode, no key needed)
 python -m patchpilot.cli examples/bad_code.py
 
+# Same review, English receipt (for international judges / teammates)
+python -m patchpilot.cli examples/bad_code_en.py --lang en
+
 # HTML report
 python -m patchpilot.cli examples/bad_code.py --html report.html
 
