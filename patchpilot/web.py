@@ -70,19 +70,21 @@ def _landing() -> str:
 <div class="feature"><h3>🧠 双大脑</h3><p>离线 Linter（确定性兜底）+ Nemotron 深度审查；无 Key 自动回落，永不崩溃。</p></div>
 <div class="feature"><h3>🛡️ 12 类检查</h3><p>裸 except、eval 注入、硬编码密钥、可变默认参数、== None、type()== …</p></div>
 <div class="feature"><h3>🔧 自动补丁</h3><p>对可机械修复的问题直接给出 before/after diff，一键采纳。</p></div>
-<div class="feature"><h3>🔎 可解释</h3><p>每条发现带证据行与行号；可选 Tavily 检索补充最佳实践参考。</p></div>
+<div class="feature"><h3>🔎 可取证</h3><p>每条发现带证据行与行号；可选 Tavily 证据检索层，按域名分级 + 正文核对后才采信。</p></div>
 </div>
 <div class="note">🔑 配置 <code>NEBIUS_API_KEY</code> 即启用 NVIDIA Nemotron 深度审查（Nebius 注册送免费额度）；
-可选 <code>TAVILY_API_KEY</code> 开启检索增强。</div>
+可选 <code>TAVILY_API_KEY</code> 开启证据检索（search / extract / map / research 五端点）。</div>
 </div>
 <footer>PatchPilot · MIT · <a href="https://github.com/Zhiyilang/patchpilot">GitHub</a></footer>
 </body></html>"""
 
 
 def _app_page(prefill: str = "", result_html: str = "", banner: str = "",
-              use_llm: bool = True, use_search: bool = False) -> str:
+              use_llm: bool = True, use_search: bool = False,
+              offline_evidence: bool = False) -> str:
     llm_checked = " checked" if use_llm else ""
     search_checked = " checked" if use_search else ""
+    off_checked = " checked" if offline_evidence else ""
     banner_html = f"<div class='note' style='border-color:var(--acc)'>{banner}</div>" if banner else ""
     return f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -96,7 +98,8 @@ def _app_page(prefill: str = "", result_html: str = "", banner: str = "",
 <textarea name="code" placeholder="在此粘贴 Python 代码…">{prefill}</textarea>
 <div class="row">
 <label><input type="checkbox" name="use_llm" value="1"{llm_checked}> 启用 Nemotron 深度审查</label>
-<label><input type="checkbox" name="use_search" value="1"{search_checked}> Tavily 检索增强</label>
+<label><input type="checkbox" name="use_search" value="1"{search_checked}> Tavily 证据检索</label>
+<label><input type="checkbox" name="offline_evidence" value="1"{off_checked}> 离线证据（fixture 演示）</label>
 <button class="btn" type="submit">🔍 一键审查</button>
 </div>
 </form>
@@ -140,16 +143,19 @@ class _Handler(BaseHTTPRequestHandler):
         code = form.get("code", [""])[0]
         use_llm = form.get("use_llm", [""])[0] == "1"
         use_search = form.get("use_search", [""])[0] == "1"
+        offline_evidence = form.get("offline_evidence", [""])[0] == "1"
 
-        dp = PatchPilot()
-        result = dp.review(code, use_llm=use_llm, use_search=use_search)
+        dp = PatchPilot(offline_evidence=offline_evidence)
+        result = dp.review(code, use_llm=use_llm,
+                           use_search=use_search or offline_evidence)
         if not result.get("ok"):
             self._send(_app_page(prefill=code, banner=result.get("error", "处理失败"),
-                                 use_llm=use_llm, use_search=use_search))
+                                 use_llm=use_llm, use_search=use_search,
+                                 offline_evidence=offline_evidence))
             return
         receipt = html_receipt(result)
-        self._send(_app_page(prefill=code, result_html=receipt,
-                             use_llm=use_llm, use_search=use_search))
+        self._send(_app_page(prefill=code, result_html=receipt, use_llm=use_llm,
+                             use_search=use_search, offline_evidence=offline_evidence))
 
 
 def serve(port: int | None = None) -> None:
