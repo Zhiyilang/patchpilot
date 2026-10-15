@@ -102,6 +102,30 @@ check("receipt.html_has_patch", "except Exception:" in html)
 txt = text_receipt(r)
 check("receipt.text_ok", "PatchPilot" in txt and "风险评分" in txt)
 
+print("== 6b. 英文回执（i18n） ==")
+from patchpilot import i18n  # noqa: E402
+from patchpilot.lint import _LINE_RULES  # noqa: E402
+
+with open(os.path.join(_HERE, "examples", "bad_code_en.py"),
+          encoding="utf-8") as f:
+    BAD_EN = f.read()
+r_en = dp.review(BAD_EN, use_llm=False)
+txt_en = text_receipt(r_en, lang="en")
+check("i18n.en_has_english_rule", "Hardcoded secret" in txt_en
+      and "Bare except" in txt_en, txt_en[:120])
+check("i18n.en_has_english_ui", "Risk score" in txt_en
+      and "Patch suggestions" in txt_en)
+check("i18n.en_no_fullwidth", not any(c in txt_en for c in "；，。：（）"))
+check("i18n.en_explains_highs", "Fix the high-severity findings first" in txt_en)
+check("i18n.en_patch_rationale_en", "Compare with None using is / is not."
+      in txt_en or "Narrow the bare except to Exception." in txt_en)
+check("i18n.zh_default_unchanged", "硬编码密钥" in txt and "风险评分" in txt)
+ALL_CODES = [c for c, *_ in _LINE_RULES] + ["LONG_LINE", "SWALLOWED_EXCEPT"]
+missing = [c for c in ALL_CODES if i18n.rule_en(c) is None]
+check("i18n.all_rules_translated", not missing, str(missing))
+check("i18n.patch_map_complete",
+      i18n.PATCH_EN.get("None 比较改用 is/is not。") == "Compare with None using is / is not.")
+
 print("== 7. 空输入 ==")
 re_ = dp.review("   ")
 check("empty.not_ok", re_["ok"] is False)
