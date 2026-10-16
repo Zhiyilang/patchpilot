@@ -8,14 +8,14 @@
 - 🛡️ **双大脑**：离线 Linter（12 条真实规则，永远可用）+ Nemotron 深度审查；无 Key 也完整可用
 - 🔧 **自动补丁**：对可机械修复的问题给出 before/after diff
 - 🔎 **可解释**：每条发现带行号 + 证据行；可选 **Tavily** 检索补充最佳实践参考
-- 🧪 **自测**：`python eval.py` → **37/37 断言全过**，零依赖
+- 🧪 **自测**：`python eval.py` → **91/91 断言全过**，零依赖
 
 ## 快速开始
 
 ```bash
 python -m patchpilot.cli examples/bad_code.py        # 离线模式审查示例烂代码
 python -m patchpilot.cli examples/bad_code.py --html report.html
-python eval.py                                        # 离线自测（37 断言）
+python eval.py                                        # 离线自测（91 断言）
 python server.py                                      # Web 控制台 → http://localhost:8000
 ```
 
