@@ -80,7 +80,7 @@ Python 3 standard library only — **zero dependencies**, no `pip install`. `url
 
 ### What I'm proud of
 
-`python eval.py` runs **83 assertions** offline, most of them written against the evidence
+`python eval.py` runs **91 assertions** offline, most of them written against the evidence
 layer with a fake Tavily client: the gate rejecting content farms, low-tier domains, duplicates
 and keyword misses; budgets capping calls and credits; quote verification passing and failing;
 HTTP errors degrading instead of crashing; and the whole review completing with zero keys. The
@@ -90,7 +90,7 @@ suite is the reason I trust the "never blocks the review" claim.
 
 ```bash
 git clone https://github.com/Zhiyilang/patchpilot && cd patchpilot
-python eval.py                                   # 83/83, no keys needed
+python eval.py                                   # 91/91, no keys needed
 python -m patchpilot.cli examples/bad_code.py --offline-evidence
 export NEBIUS_API_KEY=...                        # Nebius → Token Factory
 export TAVILY_API_KEY=...                        # tavily.com free tier

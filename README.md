@@ -15,7 +15,7 @@ fully out of the box.
   line; the optional **Tavily evidence layer** fetches real citations — but a retrieved page
   is only a *candidate*. A deterministic gate decides what counts as evidence, and quotes are
   verified against the fetched page body before they are labelled as verified.
-- 🧪 **Self-test:** `python eval.py` → **83/83 assertions pass**, zero dependencies.
+- 🧪 **Self-test:** `python eval.py` → **91/91 assertions pass**, zero dependencies.
 
 ---
 
@@ -192,7 +192,7 @@ patchpilot/
 │   ├── receipts.py   # text + HTML report
 │   ├── web.py        # stdlib web console (reads PORT)
 │   └── cli.py        # command-line entry
-├── eval.py           # 83-assertion offline self-test
+├── eval.py           # 91-assertion offline self-test
 ├── server.py         # web entry point
 ├── examples/         # bad_code.py (planted issues)
 ├── render.yaml       # one-click cloud deploy

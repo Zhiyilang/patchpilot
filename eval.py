@@ -302,5 +302,6 @@ else:
 
 print("\n" + "=" * 48)
 print(f"结果：{_passed} 通过 / {_failed} 失败")
+print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 48)
 sys.exit(1 if _failed else 0)

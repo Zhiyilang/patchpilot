@@ -9,7 +9,7 @@ Record 1080p, terminal font ≥ 16px, browser at 125% zoom.
 cd patchpilot
 export NEBIUS_API_KEY=...      # Nebius → Token Factory
 export TAVILY_API_KEY=...      # tavily.com → free tier (skip if not yet approved)
-python eval.py                 # expect: 83 passed / 0 failed
+python eval.py                 # expect: 91 passed / 0 failed
 ```
 
 If either key is missing, use the fallback line marked **[NO-KEY]** in each beat. The demo still
@@ -72,7 +72,7 @@ show you an honest blank than a fake citation."
 
 ## 2:25–2:50 — Close
 
-**Do:** `python eval.py` one more time (or keep the 83/83 from the top).
+**Do:** `python eval.py` one more time (or keep the 91/91 from the top).
 **Say:** "Two rules everything here follows. **The model is never the only brain** — a
 deterministic checker runs first, always. And **Tavily proposes, the gate decides** — a
 retrieved page isn't evidence until a rule admits it and the quote is checked at the source.
@@ -97,7 +97,7 @@ where search results have to pass a gate
 > verified against their source. Rejections are shown with reasons; unverified citations are
 > never labelled verified.
 >
-> Pure Python standard library. 83 offline assertions. MIT.
+> Pure Python standard library. 91 offline assertions. MIT.
 >
 > Repo: https://github.com/Zhiyilang/patchpilot
 > Feedback on Nebius + Tavily: NEBIUS_FEEDBACK.md
