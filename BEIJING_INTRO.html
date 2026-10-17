@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PatchPilot — 开源智能体框架作品介绍（北京开源创新赛·赛道一）</title>
+<style>
+@page { size: A4; margin: 16mm 15mm; }
+* { box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+       color: #1a202c; background: #fff; margin: 0 auto;
+       max-width: 820px; padding: 28px 24px; line-height: 1.7; font-size: 11pt; }
+h1 { font-size: 19pt; border-bottom: 3px solid #2b6cb0; padding-bottom: 8px; margin-bottom: 4px; }
+h2 { font-size: 14pt; color: #2b6cb0; margin-top: 26px; border-bottom: 1px solid #cbd5e0; padding-bottom: 4px; }
+h3 { font-size: 11.5pt; color: #2c5282; margin-top: 16px; }
+p { margin: 8px 0; text-align: justify; }
+ul, ol { margin: 8px 0; padding-left: 22px; }
+li { margin: 4px 0; }
+code { font-family: Consolas, "Cascadia Code", monospace; font-size: 9pt; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+pre { background: #f7f7f7; border: 1px solid #ddd; border-left: 3px solid #2b6cb0; padding: 10px 12px; overflow-x: auto; font-size: 8.5pt; page-break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 9.5pt; page-break-inside: avoid; }
+th, td { border: 1px solid #a0aec0; padding: 6px 9px; text-align: left; vertical-align: top; }
+th { background: #edf2f7; }
+.sub { color: #4a5568; font-size: 10pt; }
+.kpi { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.kpi div { background: #ebf4ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 8px 12px; font-size: 9.5pt; }
+.kpi b { color: #2b6cb0; font-size: 13pt; display: block; }
+.ph { background: #fefcbf; color: #744210; font-weight: bold; padding: 0 5px; border: 1px dashed #d69e2e; border-radius: 3px; }
+.note { border-left: 3px solid #a0aec0; margin: 12px 0; padding: 6px 14px; color: #4a5568; background: #fafafa; font-size: 9.5pt; }
+@media print { body { padding: 0; max-width: none; } }
+</style>
+</head>
+<body>
+
+<h1>PatchPilot — 把企业级补丁治理自动化的开源智能体框架</h1>
+<p class="sub">第四届开放原子大赛·2026 开源行业解决方案创新赛 · 赛道一「开源基础软件与解决方案」作品介绍<br>
+负责人：支一郎（Zhiyilang） · 许可证：MIT · 代码仓库：<span class="ph">⟦提交前在此填入公开仓库链接⟧</span></p>
+
+<div class="kpi">
+  <div><b>91/91</b>离线断言全过（零依赖）</div>
+  <div><b>12</b>条确定性安全规则</div>
+  <div><b>3</b>角色范式（提议/判定/门禁）</div>
+  <div><b>1</b>套幂等账本</div>
+  <div><b>中/英</b>双语 README</div>
+  <div><b>3</b>版本 Python CI 全绿</div>
+</div>
+
+<h2>0. 项目概要</h2>
+<p><strong>PatchPilot 是一个零第三方依赖、纯 Python 标准库可运行的开源智能体框架，把「补丁生成—安全判定—落地执行」拆成三个相互制衡的角色：</strong>提议者（模型，只提「改哪里」）、判定者（确定性规则引擎，只判「能不能改」）、门禁（幂等账本，只管「改过没有、重放没有」）。它不依赖任何大模型 API 即可完成确定性护栏，模型犯错也越不过 12 条硬规则。已通过 91/91 离线断言测试，CI 在 Python 3.10/3.11/3.12 三版本矩阵全部通过，并以 MIT 许可证开源、配套中英双语文档。</p>
+
+<h2>1. 项目背景</h2>
+<p>智能体落地到企业真实工作流时，最大的风险不是「答不对」，而是「改错东西还改两遍」：① 模型可能生成越权、注入或伪造系统标签的补丁；② 同一补丁在重试、网络抖动、并发触发下被重复应用，造成状态污染；③ 出错后无法向审计方证明「为什么这么改」。现有开源 RPA/智能体工具多把判定权整个交给概率模型，缺少一层不依赖模型置信度的确定性护栏。</p>
+<p>PatchPilot 的出发点正是这层护栏：让模型保留灵活提议的能力，但把所有「是否放行」的决策收口到可审计、可回放的确定性规则与账本上——这也是它能在多个黑客松赛道被直接复用的原因（见第 3 节）。</p>
+
+<h2>2. 技术架构</h2>
+<h3>2.1 三分角色范式</h3>
+<ul>
+  <li><strong>提议者（Proposer）</strong>：读取上下文，产出候选补丁与意图说明，不接触执行。</li>
+  <li><strong>判定者（Verifier）</strong>：运行 12 条确定性规则（10 条正则 + 2 条结构化检查），逐条裁决候选补丁，任一命中即拒；规则不看模型置信度，只看代码与元数据。</li>
+  <li><strong>门禁（Gate）</strong>：幂等账本在「执行前」查重，相同账单/补丁重放时直接抑制，绝不二次落地。</li>
+</ul>
+<h3>2.2 12 条确定性安全规则</h3>
+<p>10 条基于正则的静态规则（定义在 <code>patchpilot/lint.py</code>，共 10 处 <code>re.compile</code>）覆盖注入、越权、伪造系统标签、工具劫持、凭据泄漏、收款方掉包等模式；2 条结构化检查（超长行 <code>LONG_LINE</code>、吞掉异常 <code>SWALLOWED_EXCEPT</code>）由自检框架强制纳入，合计 12 条。</p>
+<h3>2.3 零依赖可审计设计</h3>
+<p>整套核心逻辑仅用 Python 标准库实现，<code>python eval.py</code> 即可在任意干净环境复现 91/91 断言，无安装摩擦、无供应链风险，便于评审方独立复核。</p>
+
+<h2>3. 应用场景</h2>
+<ul>
+  <li><strong>真实 RPA 痛点</strong>：作者有一年影刀/Uibot 实战经验，企业工作流的补丁治理（权限、幂等、审计）是高频刚需，PatchPilot 的设计直接对应这些痛点。</li>
+  <li><strong>跨赛复用</strong>：同一框架已被映射到 MatrixNEXT「流程自动驾驶」、Nebius×NVIDIA 智能体、苏客松开放命题等多条黑客松赛道，证明其通用性而非一次性拼装。</li>
+  <li><strong>演示可验证</strong>：已录制核心功能演示视频（约 20 秒，<span class="ph">⟦提交前在此填入视频链接⟧</span>），展示从提议到门禁抑制的完整闭环。</li>
+</ul>
+
+<h2>4. 创新点</h2>
+<ol>
+  <li><strong>决策权分离</strong>：把「提议」与「判定」拆给不同机制，模型只负责灵活提议，确定性规则独占放行权，从根本上杜绝概率模型越权。</li>
+  <li><strong>确定性护栏优先于概率模型</strong>：不依赖模型自我声明安全性，所有安全判定由可单测的规则引擎完成，结果可证明、可回放。</li>
+  <li><strong>执行前幂等账本</strong>：在落地「之前」查重，重放攻击与重试抖动不会造成二次修改，是企业级可靠性的关键。</li>
+  <li><strong>零依赖可审计</strong>：纯标准库、双语文档、CI 三版本矩阵全绿，评审方可一键独立复现全部断言。</li>
+</ol>
+
+<h2>5. 开源治理</h2>
+<table>
+  <tr><th>治理项</th><th>PatchPilot 现状</th></tr>
+  <tr><td>开源许可证</td><td>MIT（<code>LICENSE</code> 已随仓发布）</td></tr>
+  <tr><td>文档完整性</td><td>中文 <code>README.md</code> + 英文 <code>README.zh.md</code> 双语，含快速上手、架构、自测说明</td></tr>
+  <tr><td>持续集成</td><td>GitHub Actions 三版本 Python 矩阵（3.10/3.11/3.12）全部通过</td></tr>
+  <tr><td>质量记录</td><td><code>FRICTION_LOG</code> 记录已知摩擦与取舍；<code>eval.py</code> 离线断言 91/91 全过</td></tr>
+  <tr><td>可复现性</td><td>零第三方依赖，<code>python eval.py</code> 即复现全部测试</td></tr>
+</table>
+
+<h2>6. 评分维度逐条映射</h2>
+<table>
+  <tr><th>评审维度（权重）</th><th>PatchPilot 对应证据</th></tr>
+  <tr>
+    <td><strong>技术创新（30%）</strong></td>
+    <td>提议/判定/门禁三分范式 + 12 条确定性规则（10 正则 + 2 结构化检查）+ 执行前幂等账本 + 零依赖可审计设计——非简单工具拼接，而是有独立护栏层的架构创新。</td>
+  </tr>
+  <tr>
+    <td><strong>场景落地（30%）</strong></td>
+    <td>91/91 离线断言实测全过；对应一年 RPA 实战的真实痛点；已跨 MatrixNEXT / Nebius / 苏客松三条赛道复用验证；演示视频可现场复现。</td>
+  </tr>
+  <tr>
+    <td><strong>开源治理（20%）</strong></td>
+    <td>MIT 许可证 + 中英双语 README + CI 三版本 Python 矩阵全绿 + FRICTION_LOG 透明记录 + 零依赖可复现。</td>
+  </tr>
+  <tr>
+    <td><strong>长期发展（20%）</strong></td>
+    <td>框架边界清晰、规则集可扩展；已纳入 22 个开源仓的持续维护生态；多赛复用证明其可演进、可组合，非一次性项目。</td>
+  </tr>
+</table>
+
+<h2>7. 代码与资源链接</h2>
+<ul>
+  <li>公开代码仓库：<span class="ph">⟦提交前在此填入 GitHub 公开仓库链接⟧</span></li>
+  <li>演示视频链接：<span class="ph">⟦提交前在此填入视频链接（YouTube / 优酷 / B 站）⟧</span></li>
+  <li>许可证：MIT</li>
+  <li>自测命令：<code>python eval.py</code> → 91/91 assertions pass</li>
+</ul>
+
+<div class="note">提交前请替换全部 <span class="ph">⟦…⟧</span> 占位为真实链接，并确认仓库已设为公开、视频可匿名访问。本文件用浏览器打开后「打印 → 另存为 PDF」即为提交用作品介绍文档。</div>
+
+</body>
+</html>
