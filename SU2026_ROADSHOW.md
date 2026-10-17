@@ -73,6 +73,7 @@
 | 双语 | `--lang en/zh` | ✅ |
 | 提交文档 | patchpilot/MATRIXNEXT_SUBMISSION.md（中文提交文档范式） | ✅ 可改写 |
 | **初赛路演幻灯片** | `patchpilot/SU2026_SLIDES.html` | ✅ **7 页打开即讲**（双击用浏览器打开：←/→ 翻页、N 演讲者备注、F 全屏；已内嵌 demo 视频，零外部依赖） |
+| **3 分钟逐字稿** | `patchpilot/SU2026_PITCH_SCRIPT.md` | ✅ **照着念就能讲**（约 860 字=3:00；含时间检查点/demo 同步操作表/救句/应急预案；数字全部实测口径） |
 
 ---
 
