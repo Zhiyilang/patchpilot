@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PatchPilot — 第四届开放原子大赛·2026 开源行业解决方案创新赛 · 作品介绍文档</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif; color: #1a2332; background: #fff; margin: 0 auto; max-width: 780px; padding: 32px 28px; line-height: 1.65; font-size: 13.5px; }
+  h1 { font-size: 24px; margin: 0 0 4px; color: #0b3d91; }
+  h2 { font-size: 16px; margin: 26px 0 8px; color: #0b3d91; border-left: 4px solid #0b3d91; padding-left: 8px; }
+  h3 { font-size: 14px; margin: 16px 0 6px; color: #14406b; }
+  p { margin: 6px 0; }
+  .sub { color: #5a6b82; font-size: 12.5px; margin-bottom: 18px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12.5px; }
+  th, td { border: 1px solid #c8d4e3; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #eef3fa; color: #0b3d91; }
+  .meta td:first-child { background: #f6f8fb; font-weight: 600; width: 110px; }
+  .kpi { display: flex; gap: 10px; margin: 12px 0; }
+  .kpi div { flex: 1; border: 1px solid #c8d4e3; border-radius: 8px; padding: 10px; text-align: center; background: #f9fbfe; }
+  .kpi b { display: block; font-size: 20px; color: #0b3d91; }
+  .kpi span { font-size: 11.5px; color: #5a6b82; }
+  code, .mono { font-family: Consolas, "Courier New", monospace; background: #f0f3f8; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  pre { background: #f6f8fb; border: 1px solid #dbe4f0; border-radius: 8px; padding: 10px 12px; overflow-x: auto; font-size: 11.5px; font-family: Consolas, monospace; }
+  .dim { background: #eef3fa; border-radius: 8px; padding: 4px 12px; margin: 14px 0 4px; font-weight: 700; color: #0b3d91; }
+  ul, ol { margin: 6px 0 6px 20px; padding: 0; }
+  li { margin: 3px 0; }
+  .footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #dbe4f0; color: #7a8aa0; font-size: 11.5px; }
+  @media print { body { padding: 0; max-width: none; } h2 { page-break-after: avoid; } table { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<h1>PatchPilot 🩹 — 给每一次代码变更一颗「会解释、能验证、守门禁」的审查大脑</h1>
+<div class="sub">第四届开放原子大赛 · 2026 开源行业解决方案创新赛 · 赛道一「开源基础软件与解决方案」作品介绍文档</div>
+
+<table class="meta">
+  <tr><td>项目名称</td><td>PatchPilot（补丁飞行员）— Agentic Code Reviewer</td></tr>
+  <tr><td>参赛赛道</td><td>赛道一 · 开源基础软件与解决方案（AI 开发工具链 / 智能体框架）</td></tr>
+  <tr><td>团队</td><td>个人参赛（项目负责人：支一郎）</td></tr>
+  <tr><td>代码仓库</td><td class="mono">https://github.com/Zhiyilang/patchpilot</td></tr>
+  <tr><td>开源协议</td><td>MIT</td></tr>
+  <tr><td>演示视频</td><td>见提交表单视频链接（20.8 秒，真实运行实录）</td></tr>
+  <tr><td>技术栈</td><td>Python 3.10+ · 零第三方运行时依赖 · Nebius Token Factory（OpenAI 兼容）+ NVIDIA Nemotron</td></tr>
+</table>
+
+<div class="kpi">
+  <div><b>91/91</b><span>离线自测断言全部通过</span></div>
+  <div><b>12 条</b><span>确定性静态规则</span></div>
+  <div><b>3 类</b><span>CI 全绿（3.10/3.11/3.12）</span></div>
+  <div><b>0</b><span>运行时第三方依赖</span></div>
+</div>
+
+<h2>一、项目背景：代码审查是软件工程里最后一块「人力飞地」</h2>
+<p>现代工程的每个环节都已被工具链自动化，唯独<strong>代码审查</strong>仍高度依赖人的时间与经验：PR 排队等 review、审查者被重复性风格问题消耗、安全问题在「看一眼」中漏过，而 RPA/自动化脚本开发者这一群体尤甚——大量低代码平台产出的流程脚本缺乏系统化审查手段。</p>
+<p>与此同时，直接接入大模型做 review 又面临三个工程现实：<strong>（1）</strong> 模型输出不稳定，同样的代码两次审查结论可能不同；<strong>（2）</strong> 无 API Key 的离线环境（内网、涉密、学生机房）直接被排除在外；<strong>（3）</strong> 模型「建议」与「可执行补丁」之间存在断层，改不改、谁来验，没有闭环。</p>
+<p>PatchPilot 要解决的就是这个问题：<strong>一个任何环境下都能跑、结论可复现、建议可执行、风险有门禁的代码审查智能体</strong>。项目源于作者一年企业级 RPA（影刀/UiBot）开发中积累的真实审查痛点，而非虚构场景。</p>
+
+<h2>二、技术架构：「提议 / 判定 / 门禁」三分范式 + 双脑设计</h2>
+<p>PatchPilot 的核心设计决策是把「智能」与「可靠」拆到两条独立通道，让确定性部分永远可复现，让概率性部分永远被约束：</p>
+<pre>┌────────────────────────────────────────────────────────────┐
+│  输入：diff / 代码文件 / git 仓库                           │
+│            │                                               │
+│            ▼                                               │
+│  ┌──────────────┐   ┌──────────────┐                       │
+│  │  判定（离线）  │   │  提议（在线）  │   ← 双脑，任一可用   │
+│  │ 12 条确定性   │   │ Nemotron 深度 │                        │
+│  │ 规则 linter   │   │ 语义审查      │                        │
+│  └──────┬───────┘   └──────┬───────┘                        │
+│         └────────┬────────┘                                │
+│                  ▼                                         │
+│         结构化发现清单（findings，含规则 ID / 行号 / 证据）    │
+│                  │                                         │
+│                  ▼                                         │
+│  ┌───────────────────────────────────────┐                 │
+│  │  门禁：机械补丁生成 → 应用前校验 → 收据  │                 │
+│  │  （幂等账本：同一补丁不会重复应用）      │                 │
+│  └───────────────────────────────────────┘                 │
+│                  │                                         │
+│                  ▼                                         │
+│  输出：审查报告 + 可应用补丁 + 决策收据（全部可复现）          │
+└────────────────────────────────────────────────────────────┘</pre>
+<h3>关键设计决策</h3>
+<ol>
+  <li><strong>判定与提议分离。</strong>离线 linter（12 条规则：10 条正则模式 + 2 项结构性检查）永远可用且输出确定；Nemotron 深度审查只负责「离线规则够不着」的语义层发现。无 API Key 时系统<strong>完全可用</strong>（离线模式），而非降级成摆设。</li>
+  <li><strong>补丁必须过门禁。</strong>LLM 提议的每个修复在应用前都要通过确定性校验，且记入幂等账本——同一补丁对同一目标不会二次应用，杜绝「AI 越改越乱」。</li>
+  <li><strong>结论必须带证据。</strong>每条发现都绑定规则 ID、行号与命中证据，评审与复盘都能回溯到具体代码位置，而非接受一句「模型觉得有问题」。</li>
+  <li><strong>零运行时依赖。</strong>纯 Python 标准库实现核心链路，任何装有 Python 3.10+ 的机器开箱即跑——这是对「内网/离线/教育场景」的硬承诺。</li>
+</ol>
+
+<h2>三、应用场景</h2>
+<ul>
+  <li><strong>企业 RPA / 低代码流程脚本治理</strong>：影刀、UiBot 等平台产出的流程脚本缺少系统化审查手段，PatchPilot 可作为 CI 门禁接入（作者本职场景，已有一线使用反馈）。</li>
+  <li><strong>离线/内网研发团队</strong>：无外网 API 的环境下，离线 linter + 机械补丁仍提供完整的「发现问题—给出修复—应用留痕」闭环。</li>
+  <li><strong>AI 工程教学与示范</strong>：双脑分离 + 门禁范式是讲解「如何约束 LLM 输出」的活教材；91 条离线断言本身即是一套可执行的规格说明。</li>
+  <li><strong>个人开发者的 PR 自检</strong>：提交前本地跑一遍，把风格与常见缺陷拦截在推送之前。</li>
+</ul>
+
+<h2>四、创新点</h2>
+<ol>
+  <li><strong>「提议/判定/门禁」三分范式</strong>：把智能体的生成能力与系统的可靠性拆到两条通道——概率部分只提议，确定部分做判定与放行。相比「让 LLM 一条龙包办」的主流做法，本项目的审查结论可复现、补丁应用可审计。</li>
+  <li><strong>双脑 + 优雅降级</strong>：离线确定性 linter 与在线语义审查互为备份，任一通道缺失系统仍完整可用，而非简单报错退出。</li>
+  <li><strong>幂等补丁账本</strong>：把「AI 修改代码」这一高风险动作变成可重放、可验证的账本操作，是智能体安全落地的关键工程件。</li>
+  <li><strong>规格即可执行</strong>：91 条离线断言既是测试套件也是行为规格，<span class="mono">python eval.py</span> 一条命令向任何人自证系统状态。</li>
+</ol>
+
+<h2>五、评审维度对照</h2>
+
+<div class="dim">技术创新（30%）</div>
+<p>「提议/判定/门禁」三分范式针对现有 LLM review 工具的三个未解决问题（输出不可复现、离线不可用、建议与执行断层）给出了系统性方案，非现成工具的简单组合；双脑分离与幂等账本为自主代码修改提供了可验证的安全边界。</p>
+
+<div class="dim">场景落地（30%）</div>
+<p>项目源自作者一年企业级 RPA 开发的一线审查痛点，面向真实可部署场景（CI 门禁 / 内网环境 / 教学示范）。验证数据来自真实运行：<span class="mono">python eval.py</span> → <strong>91 passed, 0 failed</strong>（离线、无 Key、零依赖）；Web 控制台冒烟测试 HTTP 200；CI 在三个 Python 版本上全绿。演示视频为真实运行实录而非编排表演。</p>
+
+<div class="dim">开源治理（20%）</div>
+<p>MIT 协议；README 中英双语；架构设计文档（<span class="mono">DESIGN.md</span>）公开；CI 矩阵覆盖 Python 3.10/3.11/3.12，任何贡献不破坏既有规格；91 条断言即行为规格，新人上手路径 = clone → <span class="mono">python eval.py</span> → 全绿即环境就绪。仓库提交历史与发布节奏全部公开可查。</p>
+
+<div class="dim">长期发展（20%）</div>
+<p>项目是作者「AI Agent 工程」开源主线（已公开 20+ 个仓库、全部 CI 全绿，覆盖代码审查 / 合同风控 / 收据解析 / 量化裁决等场景）的核心节点，本仓库沿用了同一套经多项目验证的工程规范（零依赖、断言即规格、双语文档）。路线图明确：离线规则持续扩充、更多语言与低代码平台适配、与 CI 平台的原生集成；同一「三分范式」已在作者多个生产向项目中复用验证。</p>
+
+<h2>六、复现指南（三分钟）</h2>
+<pre>git clone https://github.com/Zhiyilang/patchpilot
+cd patchpilot
+python eval.py                  # → 91 passed, 0 failed（离线自证）
+python -m patchpilot.cli examples/bad_code.py   # 离线 linter 完整可用
+# 可选：export NEBIUS_API_KEY=&lt;key&gt; 启用 Nemotron 深度审查</pre>
+<p>环境要求：Python 3.10+，无第三方依赖。完整架构说明见仓库 <span class="mono">DESIGN.md</span>。</p>
+
+<h2>七、结语</h2>
+<p>PatchPilot 不追求「最聪明的审查器」，而追求<strong>任何环境下都敢接进生产流水线的审查器</strong>：确定性部分永远可复现，概率性部分永远被门禁约束，每一次修改都在账本里留痕。这既是软件工程对智能体的合理要求，也是本项目对「开源赋能行业创新，方案驱动场景落地」这一主题的具体回答。</p>
+
+<div class="footer">PatchPilot · MIT License · github.com/Zhiyilang/patchpilot · 第四届开放原子大赛·2026 开源行业解决方案创新赛 · 赛道一</div>
+
+</body>
+</html>
