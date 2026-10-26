@@ -11,6 +11,10 @@ venv/
 
 # 产物
 report.html
+patchpilot_report.html
+_frames_*/
+_chk_*/
+_build_*/
 *.log
 
 # 系统
