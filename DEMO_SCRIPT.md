@@ -76,7 +76,7 @@ show you an honest blank than a fake citation."
 **Say:** "Two rules everything here follows. **The model is never the only brain** — a
 deterministic checker runs first, always. And **Tavily proposes, the gate decides** — a
 retrieved page isn't evidence until a rule admits it and the quote is checked at the source.
-Eighty-three assertions, zero dependencies, MIT. That's PatchPilot."
+Ninety-one assertions, zero dependencies, MIT. That's PatchPilot."
 
 ---
 
