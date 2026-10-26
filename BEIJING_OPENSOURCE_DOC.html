@@ -39,8 +39,9 @@
   <tr><td>参赛赛道</td><td>赛道一 · 开源基础软件与解决方案（AI 开发工具链 / 智能体框架）</td></tr>
   <tr><td>团队</td><td>个人参赛（项目负责人：支一郎）</td></tr>
   <tr><td>代码仓库</td><td class="mono">https://github.com/Zhiyilang/patchpilot</td></tr>
+  <tr><td>国内镜像</td><td class="mono">https://gitee.com/ZhiYIlang/patchpilot（Gitee，国内可直接访问，内容同步）</td></tr>
   <tr><td>开源协议</td><td>MIT</td></tr>
-  <tr><td>演示视频</td><td>见提交表单视频链接（20.8 秒，真实运行实录）</td></tr>
+  <tr><td>演示视频</td><td>见提交表单视频链接（61.2 秒，真实运行实录）</td></tr>
   <tr><td>技术栈</td><td>Python 3.10+ · 零第三方运行时依赖 · Nebius Token Factory（OpenAI 兼容）+ NVIDIA Nemotron</td></tr>
 </table>
 
@@ -123,13 +124,14 @@
 cd patchpilot
 python eval.py                  # → 91 passed, 0 failed（离线自证）
 python -m patchpilot.cli examples/bad_code.py   # 离线 linter 完整可用
-# 可选：export NEBIUS_API_KEY=&lt;key&gt; 启用 Nemotron 深度审查</pre>
+# 可选：export NEBIUS_API_KEY=&lt;key&gt; 启用 Nemotron 深度审查
+# 国内网络可用 Gitee 镜像：git clone https://gitee.com/ZhiYIlang/patchpilot</pre>
 <p>环境要求：Python 3.10+，无第三方依赖。完整架构说明见仓库 <span class="mono">DESIGN.md</span>。</p>
 
 <h2>七、结语</h2>
 <p>PatchPilot 不追求「最聪明的审查器」，而追求<strong>任何环境下都敢接进生产流水线的审查器</strong>：确定性部分永远可复现，概率性部分永远被门禁约束，每一次修改都在账本里留痕。这既是软件工程对智能体的合理要求，也是本项目对「开源赋能行业创新，方案驱动场景落地」这一主题的具体回答。</p>
 
-<div class="footer">PatchPilot · MIT License · github.com/Zhiyilang/patchpilot · 第四届开放原子大赛·2026 开源行业解决方案创新赛 · 赛道一</div>
+<div class="footer">PatchPilot · MIT License · github.com/Zhiyilang/patchpilot（Gitee 镜像：gitee.com/ZhiYIlang/patchpilot）· 第四届开放原子大赛·2026 开源行业解决方案创新赛 · 赛道一</div>
 
 </body>
 </html>
