@@ -159,8 +159,12 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def serve(port: int | None = None) -> None:
-    port = port or int(os.environ.get("PORT", "8000"))
-    server = ThreadingHTTPServer(("0.0.0.0", port), _Handler)
+    # Only fall back to the env/default when port is None. `port or ...`
+    # treats an explicit 0 as "unset", which silently turns an ephemeral-port
+    # request into the fixed default.
+    if port is None:
+        port = int(os.environ.get("PORT", "8000"))
+    server = ThreadingHTTPServer(("0.0.0.0", int(port)), _Handler)
     print(f"PatchPilot 控制台已启动：http://0.0.0.0:{port}  (Ctrl+C 停止)")
     try:
         server.serve_forever()
