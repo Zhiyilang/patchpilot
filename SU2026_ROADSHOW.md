@@ -25,7 +25,7 @@
 | 时间 | 内容 | 素材 |
 |---|---|---|
 | 0:00–0:30 | 痛点：code review 是研发流程最大的时间黑洞之一，人工审查慢且漏；小团队根本没有 review 文化 | 口头+一张对比数字 |
-| 0:30–1:15 | **现场 demo**（最高优先级）：粘贴一段有 bug 的代码 → 12 条确定性规则 + Nemotron 深度审查双脑合并 → before/after 补丁 diff → 每条发现带行号+证据行 | `patchpilot_demo.mp4`（20.8s）或现场真跑 `python server.py` |
+| 0:30–1:15 | **现场 demo**（最高优先级）：粘贴一段有 bug 的代码 → 12 条确定性规则 + Nemotron 深度审查双脑合并 → before/after 补丁 diff → 每条发现带行号+证据行 | `patchpilot_demo.mp4`（61.2s）或现场真跑 `python server.py` |
 | 1:15–1:45 | 差异化：① 双脑（离线 linter 永在线+LLM 深审）② 证据闸门（Tavily 检索只是候选，引文须与页面原文逐字校验才标 verified）③ 91 断言自测+CI 三版本绿 | README 的 agent loop 图 |
 | 1:45–2:15 | 验证与规模：91/91 断言、双语、真实运行输出（非表演）；同一代码基座正在另外两条大赛线上被检验（Nebius×NVIDIA $50k 线 / MatrixNEXT ¥300k 创意赛道）——**口径注意：是「在打/已提交」，别说「入围」**，评委追问名单会露怯 | 报出赛事名即可，不展开 |
 | 2:15–2:45 | 现场 48h 计划：决赛夜要交付的三个增量（见第 5 节） | 一页 roadmap |
@@ -67,8 +67,8 @@
 
 | 资产 | 位置 | 状态 |
 |---|---|---|
-| 代码仓（MIT+CI 绿） | github.com/Zhiyilang/patchpilot | ✅ 91/91 双 locale |
-| 演示视频 20.8s | patchpilot/patchpilot_demo.mp4 | ✅ 真实运行输出 |
+| 代码仓（MIT+CI 绿） | **gitee.com/ZhiYIlang/patchpilot**（当前版，2026-10-23 推送；国内直连）<br>镜像 github.com/Zhiyilang/patchpilot（最后推送 2026-10-17，落后 6 天，缺 1 个 pdf、5 个文件内容不同——两侧归档比对实测） | ✅ 91/91 双 locale |
+| 演示视频 61.2s | patchpilot/patchpilot_demo.mp4 | ✅ 真实运行输出 |
 | 本地可跑 demo | `python server.py` | ✅ 零依赖 |
 | 双语 | `--lang en/zh` | ✅ |
 | 提交文档 | patchpilot/MATRIXNEXT_SUBMISSION.md（中文提交文档范式） | ✅ 可改写 |
@@ -85,8 +85,8 @@
 | 一句话介绍 | 粘贴代码，秒级 AI 审查 + 自动修复，每次发现都带行号和证据 |
 | 参赛赛道 | AI+生活办公（智慧办公/生产力工具） |
 | 团队构成 | 一人队：支一郎（RPA/Agent 开发，1 年经验，可独立带项目）；备注「可接受组队」 |
-| 项目链接 | https://github.com/Zhiyilang/patchpilot |
-| 演示材料 | 演示视频 20.8s（patchpilot_demo.mp4）+ 本地零依赖可跑（python server.py，已冒烟 HTTP 200） |
+| 项目链接 | **https://gitee.com/ZhiYIlang/patchpilot**（当前版）<br>镜像 https://github.com/Zhiyilang/patchpilot |
+| 演示材料 | 演示视频 61.2s（patchpilot_demo.mp4）+ 本地零依赖可跑（python server.py，已冒烟 HTTP 200） |
 | 技术栈 | Python 标准库零依赖；规则引擎 + LLM 双脑；GitHub Actions CI（3.10/3.11/3.12 全绿）；91 条断言自测 |
 | 差异化一句话 | 不是补全工具，是提交前审查关；证据闸门保证每条发现可溯源；无 API key 也能全功能运行 |
 
