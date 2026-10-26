@@ -1,7 +1,7 @@
 # PatchPilot — Devpost submission copy (Nebius × NVIDIA Global AI Hackathon)
 
 Deadline **Oct 30, 2026 6:00pm GMT+1** (= **Oct 31, 01:00 Beijing**).
-Repo: `https://github.com/Zhiyilang/patchpilot` · Track: **Coding and Agentic Engineering**.
+Repo: `https://gitee.com/ZhiYIlang/patchpilot`（当前版 · 国内直连快）· 镜像 `https://github.com/Zhiyilang/patchpilot`（GitHub 版最后推送 2026-10-17，**落后 6 天**：缺 `BEIJING_OPENSOURCE_DOC.pdf`，且 `.gitignore`/`DEMO_SCRIPT.md`/`SU2026_PITCH_SCRIPT.md`/`SU2026_ROADSHOW.md`/`SU2026_SLIDES.html` 五个文件内容不同 —— 2026-10-23 两侧归档逐字节比对实测）· Track: **Coding and Agentic Engineering**.
 Also opt in to **Best Use of Tavily ($3,000)** and **Most Valuable Feedback ($100 × 10)**.
 
 ---
