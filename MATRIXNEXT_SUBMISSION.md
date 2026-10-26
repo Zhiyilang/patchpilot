@@ -1,7 +1,8 @@
 # PatchPilot — MatrixNEXT 2026 提交文档（创意赛道 · 流程自动驾驶）
 
 > 提交时：本文件内容贴入"说明文档"链接（或直接附 GitHub 链接），视频按文末分镜录制（≤3 分钟）。
-> 项目仓库：https://github.com/Zhiyilang/patchpilot （MIT，公开）
+> 项目仓库：**https://gitee.com/ZhiYIlang/patchpilot**（当前版，2026-10-23 推送，MIT 公开；国内直连）
+> 镜像：https://github.com/Zhiyilang/patchpilot（最后推送 2026-10-17，落后 6 天：缺 `BEIJING_OPENSOURCE_DOC.pdf`，5 个文件内容不同，2026-10-23 两侧归档比对实测）
 
 ## 一、它解决什么问题（问题）
 
